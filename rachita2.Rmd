@@ -1,0 +1,220 @@
+---
+title: "Unit 2 Paper"
+author: "Rachit Agarwal"
+date: "2/28/2019"
+output:
+  word_document: default
+  html_document: default
+---
+### Overview: 
+This file gathers information on the msa data. We summarize the missing values from the data. We do exploratory analysis on the data. Finally, we implement and test linear regession models using many differnt methods for assesment. 
+
+### Apendex 1 Detail of Statistical Models:
+  Conceptual proofs
+  a.  Find log(Y/N) = B0 + B1log(N) from Y = c(N^b) where c>0 and b>1. 
+      Y = cN^b
+      Y/ N = cN^(b-1) 
+      log(Y/N) = log(cN^(b-1))
+      log(Y/N) = log(c) + (b-1)log(N)
+      since c>0 and b>1 we have B0 and B1>0
+  b.	Find log(Y) = B0 + (1+B1)log(N) from log(Y/N) = B0 + B1log(N):
+      log(Y/N) = B0 + B1log(N)
+      log(Y) – log(N) = B0 + B1log(N) 
+      log(Y) – log(N) – B1log(N) = B0
+      log(Y) – (1+B1)log(N) = B0 
+      log(Y) = B0 + (1+B1)log(N)
+For our first hypothesis, when taking into account shares of the economy deriving from finance and ict and how they relate to GMP it produces a better linear model than the relationship between GMP and population size. 
+
+Additionally, when taking into account shares of the economy deriving from finance, ict and prof.tech and how theyrelate to GMP it produces a better linear model than the relationship between GMP and population size. 
+
+### External Requirments
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(dplyr)
+```
+### Apendex 2 Exploratory Analyis:
+```{r cars}
+# read in missing data
+msadata=read.csv("http://dept.stat.lsa.umich.edu/~bbh/s485/data/gmp-2006.csv")
+## read in holdout sample
+holdout=read.csv("http://dept.stat.lsa.umich.edu/~bbh/s485/data/gmp-2006-holdout.csv")
+## add all neccary variables to the data
+GMP = as.numeric(msadata$pop)*as.numeric(msadata$pcgmp)
+msadata=data.frame(msadata,GMP)
+
+#number of missing values 
+sum(is.na(msadata$finance))
+sum(is.na(msadata$prof.tech))
+sum(is.na(msadata$ict))
+sum(is.na(msadata$management))
+sum(is.na(msadata))
+## filter complete cases for the four sectors
+finance <- mean(complete.cases(dplyr::select(msadata, finance)))
+prof.tech <- mean(complete.cases(dplyr::select(msadata, prof.tech)))
+ict <- mean(complete.cases(dplyr::select(msadata, ict)))
+management <- mean(complete.cases(dplyr::select(msadata, management)))
+#filter complete cases by pairs
+mean(complete.cases(dplyr::select(msadata, finance, prof.tech)))
+mean(complete.cases(dplyr::select(msadata, finance, ict)))
+mean(complete.cases(dplyr::select(msadata, finance, management)))
+mean(complete.cases(dplyr::select(msadata, prof.tech, ict)))
+mean(complete.cases(dplyr::select(msadata, prof.tech, management)))
+mean(complete.cases(dplyr::select(msadata, ict, management)))
+#complete cases for entire dataset
+mean(complete.cases(dplyr::select(msadata,finance,prof.tech,ict,management)))
+##final dataset#
+
+##scaterplots
+ggplot(data=msadata,mapping = aes(x=pop,y=GMP)) + geom_point(alpha=0.5)+geom_smooth(se=FALSE)
+ggplot(data=msadata,mapping = aes(x=pop,y=log(GMP))) + geom_point(alpha=0.5)+geom_smooth(se=FALSE)
+ggplot(data=msadata,mapping = aes(x=log(pop),y=GMP)) + geom_point(alpha=0.5)+geom_smooth(se=FALSE)
+ggplot(data=msadata,mapping = aes(x=log(pop),y=log(GMP))) + geom_point(alpha=0.5)+geom_smooth(se=FALSE)
+
+##scaterplots with colors corresponding to other variables
+ggplot(data=msadata,mapping = aes(x=log(pop),y=log(GMP),color=finance)) + geom_point(alpha=0.5)+geom_smooth(se=FALSE)
+ggplot(data=msadata,mapping = aes(x=log(pop),y=log(GMP),color=prof.tech)) + geom_point(alpha=0.5)+geom_smooth(se=FALSE)
+ggplot(data=msadata,mapping = aes(x=log(pop),y=log(GMP),color=ict)) + geom_point(alpha=0.5)+geom_smooth(se=FALSE)
+ggplot(data=msadata,mapping = aes(x=log(pop),y=log(GMP),color=management)) + geom_point(alpha=0.5)+geom_smooth(se=FALSE)
+
+```
+### Apendex 3 Fitting the power law model:
+```{r}
+## fitting model
+power_law<-lm(log(msadata$pcgmp)~log(msadata$pop))
+summary(power_law)
+## verifying with residuals
+plot(log(msadata$pop),resid(power_law))
+## in sample loss
+in_sample_loss	= mean(resid(power_law)^2)
+in_sample_loss
+## cross validation
+cv.lm <- function(data, formulae, nfolds = 5) 
+{
+  data <- na.omit(data)
+  formulae <- sapply(formulae, as.formula)
+  n <- nrow(data)
+  fold.labels <- sample(rep(1:nfolds, length.out = n))
+  mses <- matrix(NA, nrow = nfolds, ncol = length(formulae))
+  colnames <- as.character(formulae)
+  for (fold in 1:nfolds) {
+    test.rows <- which(fold.labels == fold)
+    train <- data[-test.rows, ]
+    test <- data[test.rows, ]
+    for (form in 1:length(formulae)) {
+      current.model <- lm(formula = formulae[[form]], data = train)
+      predictions <- predict(current.model, newdata = test)
+      test.responses <- eval(formulae[[form]][[2]], envir = test)
+      test.errors <- test.responses - predictions
+      mses[fold, form] <-mean(test.errors^2)
+    }
+  }
+  return(colMeans(mses))
+}
+cross_valid<-"log(msadata$pcgmp)~log(msadata$pop)"
+cv = cv.lm(msadata,cross_valid,5)
+cv
+```
+From the proofs derived above, we know that log(GMP) = log(c) + log(b-1)log(pop), therefore form the model summary of the power law we can determine what the values of c and b are. 
+The coeficent for the intercept is 8.796 so 8.796 log(c) and c = 6607.76. 
+The coeficent for log(pop) is 0.123 which is equal to b-1 so b = 1.123.
+This is compatible with the supra-linear power law because c>0 and b>1.
+
+Accoridng to the residual plot, we see that there is no indication of a pattern and therefore there is a porper fit for the power law and we can use the summary function and beleive the standard eror it provides which is 0.238 on 242 degrees of freedom.  
+
+### Apendex 4 Fitting the assement of alternate models:
+```{r}
+## now we have to delete missing values for finance,ict and prof.tech from our dataset ##
+analyis_data = drop_na(msadata,finance,ict,prof.tech)
+## alternate models
+original_mod<-lm(log(analyis_data$pcgmp)~log(analyis_data$pop))
+summary(original_mod)
+fin_pop<-lm(log(analyis_data$pcgmp)~analyis_data$finance)
+summary(fin_pop)
+tech_pop<-lm(log(analyis_data$pcgmp)~analyis_data$ict)
+summary(tech_pop)
+mod4<-lm(log(analyis_data$pcgmp)~analyis_data$ict+analyis_data$finance)
+summary(mod4)
+mod5<-lm(log(analyis_data$pcgmp)~analyis_data$ict+analyis_data$finance+analyis_data$prof.tech)
+summary(mod5)
+
+##in-sample loss 
+original_in_sample_loss	= mean(resid(original_mod)^2)
+fin_in_sample_loss	= mean(resid(fin_pop)^2)
+tech_in_sample_loss	= mean(resid(tech_pop)^2)
+mod4_in_sample_loss	= mean(resid(mod4)^2)
+mod5_in_sample_loss	= mean(resid(mod5)^2)
+
+original_in_sample_loss
+fin_in_sample_loss 
+fin_in_sample_loss
+tech_in_sample_loss
+mod4_in_sample_loss
+mod5_in_sample_loss
+
+## cross validataon ##
+cross_valid1<-"log(analyis_data$pcgmp)~log(analyis_data$pop)"
+cross_valid2<-"log(analyis_data$pcgmp)~analyis_data$finance"
+cross_valid3<-"log(analyis_data$pcgmp)~analyis_data$ict"
+cross_valid4<-"log(analyis_data$pcgmp)~analyis_data$ict+analyis_data$finance"
+cross_valid5<-"log(analyis_data$pcgmp)~analyis_data$ict+analyis_data$finance+analyis_data$prof.tech"
+cv1 = cv.lm(analyis_data,cross_valid1,5)
+cv1
+cv2 = cv.lm(analyis_data,cross_valid2,5)
+cv2
+cv3 = cv.lm(analyis_data,cross_valid3,5)
+cv3
+cv4 = cv.lm(analyis_data,cross_valid4,5)
+cv4
+cv5 = cv.lm(analyis_data,cross_valid5,5)
+cv5
+```
+### Apendex A Nested alternative model:
+```{r}
+## nested model for best altetrnative model
+nested_model<- lm(log(analyis_data$pcgmp)~analyis_data$ict+analyis_data$finance+analyis_data$prof.tech+log(analyis_data$pop))
+summary(nested_model)
+## anova test comparing nestred model with alternative model 
+anova(nested_model,mod5)
+```
+
+### Apendex B Holdout sample: 
+```{r}
+# B #
+## drop missing values from hold out dataset
+hold_data = drop_na(msadata,finance,ict,prof.tech)
+# add yi or orginal value to holdout dataset
+hold_data = data.frame(hold_data,log(hold_data$pcgmp))
+
+
+#predictions on holdout data 
+predictions_original<-predict(original_mod, newdata = hold_data)
+predictions_fin<-predict(fin_pop, newdata = hold_data)
+predictions_tech<-predict(tech_pop, newdata = hold_data)
+predictions_mod4<-predict(mod4, newdata = hold_data)
+predictions_mod5<-predict(mod5, newdata = hold_data)
+
+## calculate test errors and MSE for each model 
+holdout_errors_original = hold_data$log.hold_data.pcgmp - predictions_original
+MSE_original<-mean((holdout_errors_original)^2)
+MSE_original
+
+holdout_errors_fin = hold_data$log.hold_data.pcgmp - predictions_fin
+MSE_fin<-mean((holdout_errors_fin)^2)
+MSE_fin
+
+holdout_errors_tech = hold_data$log.hold_data.pcgmp - predictions_tech
+MSE_tech<-mean((holdout_errors_tech)^2)
+MSE_tech
+
+holdout_errors_mod4 = hold_data$log.hold_data.pcgmp - predictions_mod4
+MSE_mod4<-mean((holdout_errors_mod4)^2)
+MSE_mod4
+
+holdout_errors_mod5 = hold_data$log.hold_data.pcgmp - predictions_mod5
+MSE_mod5<-mean((holdout_errors_mod5)^2)
+MSE_mod5
+
+```
+
