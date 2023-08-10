@@ -1,7 +1,5 @@
 # Analyzing Gross Metropolitan Products
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-
 ## Overview
 
 This repository contains the code and analysis for the paper "Analyzing Gross Metropolitan Products" by Rachit Agarwal. The paper explores the Gross Metropolitan Product (GMP) of various metropolitan areas and provides insights into their economic performance.
@@ -13,8 +11,7 @@ This repository contains the code and analysis for the paper "Analyzing Gross Me
 - [Methodology](#methodology)
 - [Results](#results)
 - [Code](#code)
-- [Citations](#citations)
-- [License](#license)
+
 
 ## Introduction
 
@@ -22,7 +19,7 @@ The Gross Metropolitan Product (GMP) is a key economic indicator that measures t
 
 ## Data
 
-The analysis is based on publicly available GMP data, which can be found in the [data](/data) directory. The dataset includes GMP figures for multiple metropolitan areas over a specific time period.
+The analysis is based on publicly available GMP data, which can be found in the directory. The dataset includes GMP figures for multiple metropolitan areas over a specific time period.
 
 ## Methodology
 
@@ -46,14 +43,5 @@ For detailed findings and visualizations, please refer to the complete paper.
 
 ## Code
 
-The [code](/code) directory contains Jupyter notebooks and scripts used in the analysis. You can explore each notebook to understand the specific steps of data preprocessing, visualization, and modeling.
+The [code](/code) directory contains R markdown notebooks and scripts used in the analysis. You can explore the notebook to understand the specific steps of data preprocessing, visualization, and modeling.
 
-## Citations
-
-If you use this analysis or code in your own work, please cite the original paper:
-
-Rachit Agarwal. "Analyzing Gross Metropolitan Products". [Link to Paper](#)
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](/LICENSE) file for details.
